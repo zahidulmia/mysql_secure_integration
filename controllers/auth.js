@@ -1,5 +1,6 @@
 const mysql = require("mysql");
-
+const jwt = require("jsonwebtoken");
+const bcrypt = require("bcryptjs");
 const db = mysql.createConnection({
 
   host: process.env.DATABASE_HOST,
@@ -11,29 +12,56 @@ const db = mysql.createConnection({
 
 
 
-exports.register=(req,res) => {
+exports.register = (req, res) => {
 
-console.log(req.body);
+  console.log(req.body);
 
-const name= req.body.name;
-const email= req.body.email;
-const password= req.body.password;
-const passwordConfirm= req.body.passwordConfirm;
-res.send("form submitted");
-db.query("SELECT email FROM user WHERE email =?",[email], (error , results) =>{
-if(error){
-  console.log(error);
-}if(results.length > 0 ) {
-  return res.render("register", {
-    massage: "this email is alreay in use "
-  })
-  }
-  else if(password!== passwordConfirm){
-    return res.render ("register", {
-      massage : "password donot match"
+  const name = req.body.name;
+  const email = req.body.email;
+  const password = req.body.password;
+  const passwordConfirm = req.body.passwordConfirm;
+
+  db.query("SELECT email FROM user WHERE email =?", [email], async (error, results) => {
+    if (error) {
+      console.log(error);
+    }
+    if (results.length > 0) {
+      return res.render("register", {
+        massage: "this email is alreay in use "
+      })
+    } else if (password !== passwordConfirm) {
+      return res.render("register", {
+        massage: "password do not match"
+      })
+    }
+
+
+    let hashedPassword = await bcrypt.hash(password, 8);
+    console.log(hashedPassword);
+
+    db.query("INSERT INTO user SET ? ", {
+      name: name,
+      email: email,
+      password: hashedPassword
+    }, (error, result) => {
+      if (error) {
+        console.log(error);
+      } else {
+        return res.render("register", {
+          massage: "user registered "
+        });
+      }
     })
-  }
 
 
-})
+  })
+
+
+
+
+
+
+
+
+
 }
